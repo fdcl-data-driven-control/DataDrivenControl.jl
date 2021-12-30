@@ -35,7 +35,7 @@ function update!(irl::LinearIRL, w, ϕs::AbstractArray, V̂_nexts::AbstractArray
 end
 
 """
-Policy evaluation [1, Eq. 96]
+Policy evaluation [1, Eq. 96].
 """
 function _optimal_input(R_inv, B, P, x)
     -0.5 * R_inv * B' * (2 * P * x)
@@ -50,4 +50,38 @@ end
 function optimal_input(irl::LinearIRL, x, P::Matrix)
     @unpack R_inv, B = irl
     _optimal_input(R_inv, B, P, x)
+end
+
+function value(irl::LinearIRL, P::Matrix, x)
+    x' * P * x
+end
+
+function value(irl::LinearIRL, w::Vector, x)
+    P = convert_to_matrix(w)
+    value(irl, P, x)
+end
+
+function push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost, P::Matrix;
+        t, x, u,
+    )
+    @unpack data_array = buffer
+    data_sorted = sort(data_array, by = x -> x.t)  # sorted by t
+    V̂_with_prev_P = value(irl, P, x)
+    # prev data
+    t_prev = data_sorted[end].t
+    x_prev = data_sorted[end].x
+    u_prev = data_sorted[end].u
+    # numerical integration
+    Δt = t - t_prev
+    r = cost(x, u)
+    r_prev = cost(x_prev, u_prev)
+    ∫r = 0.5 * (r + r_prev) * Δt # trapezoidal
+    V̂ = ∫r + V̂_with_prev_P
+    datum = (;
+             t=t,
+             x=x,
+             u=u,
+             V̂=V̂,
+            )
+    push!(buffer, datum)
 end
