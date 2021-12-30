@@ -3,6 +3,6 @@ struct QuadraticCost <: AbstractCost
     R::Matrix
 end
 
-function QuadraticCost(x, u)
+function (cost::QuadraticCost)(x, u)
     x.'*Q*x + u.'*R*u
 end
