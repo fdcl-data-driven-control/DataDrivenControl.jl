@@ -4,5 +4,6 @@ struct QuadraticCost <: AbstractCost
 end
 
 function (cost::QuadraticCost)(x, u)
-    x.'*Q*x + u.'*R*u
+    @unpack Q, R = cost
+    x'*Q*x + u'*R*u
 end
