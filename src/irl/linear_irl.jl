@@ -22,15 +22,19 @@ end
 Value iteration [1, Eq. 99]; updated in least-square sense
 # Notes
 w: critic parameter (vectorised)
-ϕs: the vector of bases (evaluated)
-V̂_nexts: the vector of approximate values (evaluated)
+ϕs_prev: the vector of bases (evaluated)
+V̂: the vector of approximate values (evaluated)
 """
-function update!(irl::LinearIRL, w, ϕs::AbstractArray, V̂_nexts::AbstractArray,
+function update!(irl::LinearIRL, buffer::DataBuffer, w,
     )
-    error("TODO")
     @unpack N = irl
-    if length(V̂_nexts) >= N
-        w .= pinv(hcat(ϕs[end-irl.N:end-1]...)') * hcat(V̂_nexts...)'  # least square sense
+    @unpack data_array = buffer
+    if length(data_array) >= N
+        data_sorted = sort(data_array, by=x -> x.t)
+        ϕs_prev = data_sorted[end-N, end-1] |> Map(datum -> datum.ϕ) |> collect
+        V̂s = data_sorted[end-(N-1), end] |> Map(datum -> datum.V̂) |> collect
+        w .= ( hcat(V̂...) * pinv(hcat(ϕs_prev...)) )'  # to reduce the computation time
+        # w .= pinv(hcat(ϕs_prev...)') * hcat(V̂...)'  # least square sense
     end
 end
 
@@ -61,9 +65,13 @@ function value(irl::LinearIRL, w::Vector, x)
     value(irl, P, x)
 end
 
-function push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost, P::Matrix;
-        t, x, u,
+"""
+w: critic parameter (vectorised)
+"""
+function push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost;
+        t, x, u, w,
     )
+    P = convert_to_matrix(w)
     @unpack data_array = buffer
     data_sorted = sort(data_array, by = x -> x.t)  # sorted by t
     V̂_with_prev_P = value(irl, P, x)
@@ -77,10 +85,13 @@ function push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost, P::Matrix
     r_prev = cost(x_prev, u_prev)
     ∫r = 0.5 * (r + r_prev) * Δt # trapezoidal
     V̂ = ∫r + V̂_with_prev_P
+    ϕ = convert_quadratic_to_linear_basis(x)  # x'Px = w'ϕ(x)
     datum = (;
              t=t,
              x=x,
              u=u,
+             w=w,  # logging
+             ϕ=ϕ,
              V̂=V̂,
             )
     push!(buffer, datum)
