@@ -16,5 +16,3 @@ function convert_to_matrix(w::Vector)::Matrix
     end
     P
 end
-
-
