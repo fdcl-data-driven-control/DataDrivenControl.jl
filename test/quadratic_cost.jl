@@ -9,5 +9,5 @@ using LinearAlgebra
 
     cost = DataDrivenControl.QuadraticCost(Q, R)
     r = cost(x, u)
-    @test r == 6
+    @test r == 6  # analytically obtained
 end
