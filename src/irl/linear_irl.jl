@@ -21,10 +21,17 @@ end
 """
 Value iteration [1, Eq. 99]; updated in least-square sense
 # Notes
-w: previous parameter
+w: critic parameter (vectorised)
+ϕs: the vector of bases (evaluated)
+V̂_nexts: the vector of approximate values (evaluated)
 """
-function update!(irl::LinearIRL, w)
+function update!(irl::LinearIRL, w, ϕs::AbstractArray, V̂_nexts::AbstractArray,
+    )
     error("TODO")
+    @unpack N = irl
+    if length(V̂_nexts) >= N
+        w .= pinv(hcat(ϕs[end-irl.N:end-1]...)') * hcat(V̂_nexts...)'  # least square sense
+    end
 end
 
 """

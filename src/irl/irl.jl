@@ -1,7 +1,7 @@
 abstract type AbstractIRL end
 
 
-function convert_to_matrix(w)
+function convert_to_matrix(w::Vector)::Matrix
     _l = length(w)
     l = Int((-1 + sqrt(1+4*2*_l)) / 2)  # P is l x l lower triangular matrix with elements of w
     P = zeros(l, l)
