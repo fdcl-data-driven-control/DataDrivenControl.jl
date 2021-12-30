@@ -7,6 +7,8 @@ See [1, "IRL Optimal Adaptive Control Using Value Iteration"].
 # Notes
 - T: Data stack period
 - N: The maximum length of stacked data
+- ϕs_prev: the vector of bases (evaluated)
+- V̂: the vector of approximate values (evaluated)
 """
 mutable struct LinearIRL <: AbstractIRL
     Q::AbstractMatrix
@@ -30,6 +32,14 @@ mutable struct LinearIRL <: AbstractIRL
             @assert N >= N_min
         end
         @assert T > 0 && N > 0
+        n1, n2 = size(Q)
+        @assert n1 == n2
+        N_min = n1*(n1 + 1)/2
+        if N == nothing
+            N = N_min
+        else
+            @assert N >= N_min
+        end
         R_inv = inv(R)
         i = i_init
         new(Q, R_inv, B, T, N, i, i_init)
