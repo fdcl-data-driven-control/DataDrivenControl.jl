@@ -34,12 +34,13 @@ mutable struct LinearIRL <: AbstractIRL
         @assert T > 0 && N > 0
         n1, n2 = size(Q)
         @assert n1 == n2
-        N_min = n1*(n1 + 1)/2
+        N_min = Int(n1*(n1 + 1)/2)
         if N == nothing
             N = N_min
         else
             @assert N >= N_min
         end
+        @assert T > 0 && N > 0
         R_inv = inv(R)
         i = i_init
         new(Q, R_inv, B, T, N, i, i_init)
