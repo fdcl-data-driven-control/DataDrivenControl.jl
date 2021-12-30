@@ -15,10 +15,11 @@ mutable struct LinearIRL <: AbstractIRL
     T::Real
     N::Int
     i::Int
+    i_init::Int
     function LinearIRL(Q::AbstractMatrix, R::AbstractMatrix, B::AbstractMatrix;
             T=0.04,
             N=nothing,
-            i=0,  # iteration number
+            i_init=0,  # iteration number
         )
         n1, n2 = size(Q)
         @assert n1 == n2
@@ -30,8 +31,13 @@ mutable struct LinearIRL <: AbstractIRL
         end
         @assert T > 0 && N > 0
         R_inv = inv(R)
-        new(Q, R_inv, B, T, N, i)
+        i = i_init
+        new(Q, R_inv, B, T, N, i, i_init)
     end
+end
+
+function reset!(irl::LinearIRL)
+    irl.i = irl.i_init
 end
 
 """
