@@ -1,6 +1,6 @@
 struct QuadraticCost <: AbstractCost
-    Q
-    R
+    Q::Matrix
+    R::Matrix
 end
 
 function QuadraticCost(x, u)
