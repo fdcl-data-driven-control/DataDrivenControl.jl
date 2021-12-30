@@ -38,7 +38,7 @@ end
 Policy evaluation [1, Eq. 96]
 """
 function _optimal_input(R_inv, B, P, x)
-    -0.5 * R_inv * B' * P * x
+    -0.5 * R_inv * B' * (2 * P * x)
 end
 
 function optimal_input(irl::LinearIRL, x, w::Vector)
