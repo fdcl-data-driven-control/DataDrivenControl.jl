@@ -7,8 +7,6 @@ See [1, "IRL Optimal Adaptive Control Using Value Iteration"].
 # Notes
 - T: Data stack period
 - N: The maximum length of stacked data
-- ϕs_prev: the vector of bases (evaluated)
-- V̂: the vector of approximate values (evaluated)
 """
 mutable struct LinearIRL <: AbstractIRL
     Q::AbstractMatrix
@@ -40,6 +38,8 @@ end
 Value iteration [1, Eq. 99]; updated in least-square sense
 # Notes
 w: critic parameter (vectorised)
+- ϕs_prev: the vector of bases (evaluated)
+- V̂: the vector of approximate values (evaluated)
 """
 function evaluate_policy!(irl::LinearIRL, buffer::DataBuffer, w,
     )
