@@ -1,5 +1,8 @@
 module DataDrivenControl
 
-# Write your package code here.
+using LinearAlgebra
+using UnPack
+
+include("cost.jl")
 
 end
