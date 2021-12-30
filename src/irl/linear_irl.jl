@@ -10,28 +10,28 @@ See [1, "IRL Optimal Adaptive Control Using Value Iteration"].
 - ϕs_prev: the vector of bases (evaluated)
 - V̂: the vector of approximate values (evaluated)
 """
-struct LinearIRL <: AbstractIRL
-    Q::Matrix
-    R_inv::Matrix
-    B::Matrix
+mutable struct LinearIRL <: AbstractIRL
+    Q::AbstractMatrix
+    R_inv::AbstractMatrix
+    B::AbstractMatrix
     T::Real
     N::Int
     i::Int
-    function LinearIRL(Q::Matrix, R::Matrix, B::Matrix;
+    function LinearIRL(Q::AbstractMatrix, R::AbstractMatrix, B::AbstractMatrix;
             T=0.04,
             N=nothing,
+            i=0,  # iteration number
         )
-        @assert T > 0 && N > 0
         n1, n2 = size(Q)
         @assert n1 == n2
-        N_min = n1*(n1 + 1)/2
+        N_min = Int(n1*(n1 + 1)/2)
         if N == nothing
             N = N_min
         else
             @assert N >= N_min
         end
+        @assert T > 0 && N > 0
         R_inv = inv(R)
-        i = 0  # iteration number
         new(Q, R_inv, B, T, N, i)
     end
 end
@@ -48,12 +48,12 @@ function evaluate_policy!(irl::LinearIRL, buffer::DataBuffer, w,
     data_filtered = filter(x -> x.i == i, data_array)  # data from the current policy
     if length(data_filtered) >= N
         data_sorted = sort(data_filtered, by=x -> x.t)  # sort by time index
-        ϕs_prev = data_sorted[end-N, end-1] |> Map(datum -> datum.ϕ) |> collect
-        V̂s = data_sorted[end-(N-1), end] |> Map(datum -> datum.V̂) |> collect
+        ϕs_prev = data_sorted[end-N:end-1] |> Map(datum -> datum.ϕ) |> collect
+        V̂s = data_sorted[end-(N-1):end] |> Map(datum -> datum.V̂) |> collect
         irl.i += 1  # update iteration number
         # update the critic parameter
-        w .= ( hcat(V̂...) * pinv(hcat(ϕs_prev...)) )'  # to reduce the computation time
-        # w .= pinv(hcat(ϕs_prev...)') * hcat(V̂...)'  # least square sense
+        w .= ( hcat(V̂s...) * pinv(hcat(ϕs_prev...)) )'[:]  # to reduce the computation time; [:] for vectorisation
+        # w .= pinv(hcat(ϕs_prev...)') * hcat(V̂s...)'  # least square sense
     end
 end
 
@@ -64,22 +64,22 @@ function _optimal_input(R_inv, B, P, x)
     -0.5 * R_inv * B' * (2 * P * x)
 end
 
-function optimal_input(irl::LinearIRL, x, w::Vector)
+function optimal_input(irl::LinearIRL, x, w::AbstractVector)
     @unpack R_inv, B = irl
     P = convert_to_matrix(w)
     _optimal_input(R_inv, B, P, x)
 end
 
-function optimal_input(irl::LinearIRL, x, P::Matrix)
+function optimal_input(irl::LinearIRL, x, P::AbstractMatrix)
     @unpack R_inv, B = irl
     _optimal_input(R_inv, B, P, x)
 end
 
-function value(irl::LinearIRL, P::Matrix, x)
+function value(irl::LinearIRL, P::AbstractMatrix, x)
     x' * P * x
 end
 
-function value(irl::LinearIRL, w::Vector, x)
+function value(irl::LinearIRL, w::AbstractVector, x)
     P = convert_to_matrix(w)
     value(irl, P, x)
 end
@@ -87,7 +87,7 @@ end
 """
 w: critic parameter (vectorised)
 """
-function push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost;
+function Base.push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost;
         t, x, u, w,
     )
     P = convert_to_matrix(w)
@@ -96,15 +96,19 @@ function push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost;
     data_sorted = sort(data_array, by = x -> x.t)  # sorted by t
     V̂_with_prev_P = value(irl, P, x)
     # prev data
-    t_prev = data_sorted[end].t
-    x_prev = data_sorted[end].x
-    u_prev = data_sorted[end].u
-    # numerical integration
-    Δt = t - t_prev
-    r = cost(x, u)
-    r_prev = cost(x_prev, u_prev)
-    ∫r = 0.5 * (r + r_prev) * Δt # trapezoidal
-    V̂ = ∫r + V̂_with_prev_P
+    if length(data_sorted) != 0
+        t_prev = data_sorted[end].t
+        x_prev = data_sorted[end].x
+        u_prev = data_sorted[end].u
+        # numerical integration
+        Δt = t - t_prev
+        r = cost(x, u)
+        r_prev = cost(x_prev, u_prev)
+        ∫r = 0.5 * (r + r_prev) * Δt # trapezoidal
+        V̂ = ∫r + V̂_with_prev_P
+    else
+        V̂ = missing
+    end
     ϕ = convert_quadratic_to_linear_basis(x)  # x'Px = w'ϕ(x)
     datum = (;
              t=t,
@@ -115,5 +119,5 @@ function push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost;
              V̂=V̂,
              i=i,  # iteration number
             )
-    push!(buffer, datum)
+    push!(buffer.data_array, datum)
 end
