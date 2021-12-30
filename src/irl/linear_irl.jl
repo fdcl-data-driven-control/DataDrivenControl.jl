@@ -1,5 +1,3 @@
-abstract type AbstractIRL end
-
 """
 # Refs
 [1] “Reinforcement Learning and Feedback Control: Using Natural Decision Methods to Design Optimal Adaptive Controllers,” IEEE Control Syst., vol. 32, no. 6, pp. 76–105, Dec. 2012, doi: 10.1109/MCS.2012.2214134.
@@ -7,15 +5,16 @@ abstract type AbstractIRL end
 - T: Data stack period
 - N: The maximum length of stacked data
 """
-struct LinearIRL <: AbstractIRL where T <: Number
-    Q::Matrix{T}
-    R_inv::Matrix{T}
+struct LinearIRL <: AbstractIRL
+    Q::Matrix
+    R_inv::Matrix
+    B::Matrix
     T::Real
     N::Int
-    function LinearIRL(Q, R; T=0.04, N=3)
+    function LinearIRL(Q, R, B; T=0.04, N=3)
         @assert T > 0 && N > 0
         R_inv = inv(R)
-        new(Q, R_inv)
+        new(Q, R_inv, B, T, N)
     end
 end
 
@@ -31,13 +30,17 @@ end
 """
 Policy evaluation [1, Eq. 96]
 """
-function OptimalInput(irl::LinearIRL, x, w)
-    @unpack R_inv = irl
-    P = convert_to_matrix(irl, w)
+function _optimal_input(R_inv, B, P, x)
     -0.5 * R_inv * B' * P * x
 end
 
-function convert_to_matrix(irl::LinearIRL, w)
-    error("TODO")
-    # P = 
+function optimal_input(irl::LinearIRL, x, w::Vector)
+    @unpack R_inv, B = irl
+    P = convert_to_matrix(w)
+    _optimal_input(R_inv, B, P, x)
+end
+
+function optimal_input(irl::LinearIRL, x, P::Matrix)
+    @unpack R_inv, B = irl
+    _optimal_input(R_inv, B, P, x)
 end
