@@ -6,6 +6,8 @@ using Transducers
 
 ## Costs
 export QuadraticInInputCost, QuadraticCost
+export LinearIRL
+export optimal_input
 
 
 include("utils/utils.jl")
