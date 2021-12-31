@@ -57,9 +57,9 @@ function main()
         xs = df.sol |> Map(datum -> datum.state) |> collect
         us = df.sol |> Map(datum -> datum.input) |> collect
         ws = df.sol |> Map(datum -> datum.param) |> collect
-        fig_x = plot(hcat(xs...)'; label=[L"x_{1}" L"x_{2}"])
-        fig_u = plot(hcat(us...)'; label=L"u")
-        fig_w = plot(hcat(ws...)'; label=[L"w_{1}" L"w_{2}" L"w_{3}"])
+        fig_x = plot(ts, hcat(xs...)'; label=[L"x_{1}" L"x_{2}"])
+        fig_u = plot(ts, hcat(us...)'; label=L"u")
+        fig_w = plot(ts, hcat(ws...)'; label=[L"w_{1}" L"w_{2}" L"w_{3}"])
         fig = plot(fig_x, fig_u, fig_w)
 
 
