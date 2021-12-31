@@ -4,7 +4,9 @@ using LinearAlgebra
 using UnPack
 using Transducers
 
-export LinearIRL
+## IRL
+# Linear IRL
+export LinearIRL, evaluate_policy!
 export optimal_input
 
 
