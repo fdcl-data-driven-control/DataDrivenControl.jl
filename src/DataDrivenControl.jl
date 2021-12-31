@@ -6,7 +6,9 @@ using Transducers
 
 ## Costs
 export QuadraticInInputCost, QuadraticCost
-export LinearIRL
+## IRL
+# Linear IRL
+export LinearIRL, evaluate_policy!
 export optimal_input
 
 

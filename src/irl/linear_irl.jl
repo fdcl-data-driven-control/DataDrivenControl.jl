@@ -61,7 +61,7 @@ function evaluate_policy!(irl::LinearIRL, buffer::DataBuffer, w,
     @unpack i, N = irl
     @unpack data_array = buffer
     data_filtered = filter(x -> x.i == i, data_array)  # data from the current policy
-    if length(data_filtered) >= N
+    if length(data_filtered) >= N + 1
         data_sorted = sort(data_filtered, by=x -> x.t)  # sort by time index
         ϕs_prev = data_sorted[end-N:end-1] |> Map(datum -> datum.ϕ) |> collect
         V̂s = data_sorted[end-(N-1):end] |> Map(datum -> datum.V̂) |> collect

@@ -5,6 +5,7 @@ using Plots
 using LinearAlgebra
 using Transducers
 using LaTeXStrings
+using DiffEqCallbacks
 
 
 struct LinearSystem_ZOH_Gain
@@ -38,44 +39,47 @@ function main()
         R = Matrix(I, m, m)
         cost = DataDrivenControl.QuadraticCost(Q, R)
         linear = LinearSystem(A, B)
-        controller = DataDrivenControl.LinearIRL(Q, R, B)
+        controller = DataDrivenControl.LinearIRL(Q, R, B; T=0.04)
         env = LinearSystem_ZOH_Gain(linear, controller)
         x0 = State(env)(rand(2))
         # TODO: add callback to update param `w`
         # simulation
-        P = [0.0500 0.0039;
-             0.0039 0.2085]  # true solution
-        w = [P[1, 1], P[2, 1]+P[1, 2], P[2, 2]]  # true solution
+        P_true = [0.0500 0.0039;
+                  0.0039 0.2085]  # true solution
+        w_true = [P_true[1, 1], P_true[2, 1]+P_true[1, 2], P_true[2, 2]]
+        scale = 0.1
+        w0 = w_true + scale*randn(3)  # perturbed initial guess
         tf = 10.0
-        simulator = Simulator(x0, Dynamics!(env), w;
+        simulator = Simulator(x0, Dynamics!(env), w0;
                               tf=tf,
                              )
-        Δt = controller.T
-        df = solve(simulator; savestep=Δt)
+        Δt = 0.01
+        # TODO: data buffer is a duplicate of saving callback (see `df`)
+        # data buffer
+        buffer = DataDrivenControl.DataBuffer()
+        function update!(integrator)
+            t = integrator.t
+            x = integrator.u  # convention of DifferentialEquations.jl
+            w = integrator.p  # convention of DifferentialEquations.jl
+            u = optimal_input(controller, x, w)  # TODO: not to be duplicate of control input in dynamics for stable coding
+            push!(buffer, controller, cost;
+                  t=t, x=copy(x), u=copy(u), w=copy(w))
+            evaluate_policy!(controller, buffer, w)
+        end
+        cb_irl = PeriodicCallback(update!, controller.T; initial_affect=true)  # stack initial data
+        df = solve(simulator;
+                   callback=cb_irl,
+                   savestep=Δt,
+                  )
         # plot
         ts = df.time
         xs = df.sol |> Map(datum -> datum.state) |> collect
         us = df.sol |> Map(datum -> datum.input) |> collect
         ws = df.sol |> Map(datum -> datum.param) |> collect
-        fig_x = plot(ts, hcat(xs...)'; label=[L"x_{1}" L"x_{2}"])
-        fig_u = plot(ts, hcat(us...)'; label=L"u")
-        fig_w = plot(ts, hcat(ws...)'; label=[L"w_{1}" L"w_{2}" L"w_{3}"])
+        fig_x = plot(ts, hcat(xs...)'; label=[L"x_{1}" L"x_{2}"], legend=:outerbottomright)
+        fig_u = plot(ts, hcat(us...)'; label=L"u", legend=:outerbottomright)
+        fig_w = plot(ts, hcat(ws...)'; label=[L"w_{1}" L"w_{2}" L"w_{3}"], legend=:outerbottomright)
+        ws_true = ts |> Map(t -> w_true) |> collect
+        plot!(fig_w, ts, hcat(ws_true...)'; color=:black, label=nothing)
         fig = plot(fig_x, fig_u, fig_w)
-
-
-        # # data buffer
-        # buffer = DataDrivenControl.DataBuffer()
-        # # TODO
-        # ts = 0:irl.T:1
-        # for t in ts
-        #     push!(buffer, irl, cost; t=t, x=x, u=û, w=ŵ)
-        # end
-        # @test length(buffer.data_array) == length(ts)
-        # ŵ_new = deepcopy(ŵ)
-        # i = deepcopy(irl.i)
-        # DataDrivenControl.evaluate_policy!(irl, buffer, ŵ_new)
-        # @test ŵ_new != ŵ  # updated?
-        # @test i + 1 == irl.i
-        # DataDrivenControl.reset!(irl)
-        # @test irl.i == irl.i_init
 end
