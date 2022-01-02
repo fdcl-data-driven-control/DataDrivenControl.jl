@@ -56,15 +56,19 @@ w: critic parameter (vectorised)
 - ϕs_prev: the vector of bases (evaluated)
 - V̂: the vector of approximate values (evaluated)
 """
-function evaluate_policy!(irl::LinearIRL, buffer::DataBuffer, w,
-    )
+function value_iteration!(irl::LinearIRL, buffer::DataBuffer, w)
     @unpack i, N = irl
     @unpack data_array = buffer
     data_filtered = filter(x -> x.i == i, data_array)  # data from the current policy
     if length(data_filtered) >= N + 1
         data_sorted = sort(data_filtered, by=x -> x.t)  # sort by time index
         ϕs_prev = data_sorted[end-N:end-1] |> Map(datum -> datum.ϕ) |> collect
-        V̂s = data_sorted[end-(N-1):end] |> Map(datum -> datum.V̂) |> collect
+        # V̂s = data_sorted[end-(N-1):end] |> Map(datum -> datum.V̂) |> collect
+        xs = data_sorted[end-(N-1):end] |> Map(datum -> datum.x) |> collect
+        ∫rs = data_sorted[end-(N-1):end] |> Map(datum -> datum.∫r) |> collect
+        P = convert_to_matrix(w)
+        V̂s_with_prev_P = xs |> Map(x -> value(irl, P, x)) |> collect
+        V̂s = ∫rs .+ V̂s_with_prev_P
         irl.i += 1  # update iteration number
         # update the critic parameter
         w .= ( hcat(V̂s...) * pinv(hcat(ϕs_prev...)) )'[:]  # to reduce the computation time; [:] for vectorisation
@@ -105,11 +109,11 @@ w: critic parameter (vectorised)
 function Base.push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost;
         t, x, u, w,
     )
-    P = convert_to_matrix(w)
+    # P = convert_to_matrix(w)
     @unpack data_array = buffer
     @unpack i = irl
     data_sorted = sort(data_array, by = x -> x.t)  # sorted by t
-    V̂_with_prev_P = value(irl, P, x)
+    # V̂_with_prev_P = value(irl, P, x)
     # prev data
     if length(data_sorted) != 0
         t_prev = data_sorted[end].t
@@ -120,9 +124,10 @@ function Base.push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost;
         r = cost(x, u)
         r_prev = cost(x_prev, u_prev)
         ∫r = 0.5 * (r + r_prev) * Δt # trapezoidal
-        V̂ = ∫r + V̂_with_prev_P
+        # V̂ = ∫r + V̂_with_prev_P
     else
-        V̂ = missing
+        # V̂ = missing
+        ∫r = missing
     end
     ϕ = convert_quadratic_to_linear_basis(x)  # x'Px = w'ϕ(x)
     datum = (;
@@ -131,7 +136,8 @@ function Base.push!(buffer::DataBuffer, irl::LinearIRL, cost::AbstractCost;
              u=u,
              w=w,  # logging
              ϕ=ϕ,
-             V̂=V̂,
+             ∫r=∫r,
+             # V̂=V̂,
              i=i,  # iteration number
             )
     push!(buffer.data_array, datum)
