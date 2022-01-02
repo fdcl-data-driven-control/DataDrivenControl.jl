@@ -1,5 +1,5 @@
 """
-See [1, "IRL Optimal Adaptive Control Using Value Iteration"].
+See [1, "Online Implementation of IRL: A Hybrid Optimal Adaptive Controller"].
 
 # Refs
 [1] “Reinforcement Learning and Feedback Control: Using Natural Decision Methods to Design Optimal Adaptive Controllers,” IEEE Control Syst., vol. 32, no. 6, pp. 76–105, Dec. 2012, doi: 10.1109/MCS.2012.2214134.
@@ -76,6 +76,13 @@ function value_iteration!(irl::LinearIRL, buffer::DataBuffer, w)
     end
 end
 
+"""
+Policy iteration [1, Eq. 98]; updated in least-square sense
+# Notes
+w: critic parameter (vectorised)
+- Δϕs: the vector of (ϕ - ϕ_prev) (evaluated)
+- ∫rs: the vector of integral running cost by numerical integration (evaluated)
+"""
 function policy_iteration!(irl::LinearIRL, buffer::DataBuffer, w)
     @unpack i, N = irl
     @unpack data_array = buffer
