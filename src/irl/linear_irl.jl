@@ -60,11 +60,31 @@ function value_iteration!(irl::LinearIRL, buffer::DataBuffer, w)
         P = convert_to_matrix(w)
         V̂s_with_prev_P = xs |> Map(x -> value(irl, P, x)) |> collect
         V̂s = ∫rs .+ V̂s_with_prev_P
-        irl.i += 1  # update iteration number
         # update the critic parameter
         w .= ( hcat(V̂s...) * pinv(hcat(ϕs_prev...)) )'[:]  # to reduce the computation time; [:] for vectorisation
         # w .= pinv(hcat(ϕs_prev...)') * hcat(V̂s...)'  # least square sense
+        update_index!(irl)
     end
+end
+
+function policy_iteration!(irl::LinearIRL, buffer::DataBuffer, w)
+    @unpack i, N = irl
+    @unpack data_array = buffer
+    data_filtered = filter(x -> x.i == i, data_array)  # data from the current policy
+    if length(data_filtered) >= N + 1
+        data_sorted = sort(data_filtered, by=x -> x.t)  # sort by time index
+        ϕs_prev_and_present = data_sorted[end-N:end] |> Map(datum -> datum.ϕ) |> collect
+        Δϕs = diff(ϕs_prev_and_present)
+        ∫rs = data_sorted[end-(N-1):end] |> Map(datum -> datum.∫r) |> collect
+        # update the critic parameter
+        w .= ( hcat(∫rs...) * pinv(hcat(-Δϕs...)) )'[:]  # to reduce the computation time; [:] for vectorisation
+        # w .= pinv(hcat(-Δϕs...)') * hcat(∫rs...)'  # least square sense
+        update_index!(irl)
+    end
+end
+
+function update_index!(irl::LinearIRL)
+    irl.i += 1
 end
 
 """
