@@ -8,7 +8,7 @@ using Transducers
 export QuadraticInInputCost, QuadraticCost
 ## IRL
 # Linear IRL
-export LinearIRL, value_iteration!
+export LinearIRL, value_iteration!, policy_iteration!
 export optimal_input
 
 
