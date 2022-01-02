@@ -64,7 +64,7 @@ function main()
             u = optimal_input(controller, x, w)  # TODO: not to be duplicate of control input in dynamics for stable coding
             push!(buffer, controller, cost;
                   t=t, x=copy(x), u=copy(u), w=copy(w))
-            evaluate_policy!(controller, buffer, w)
+            value_iteration!(controller, buffer, w)
         end
         cb_irl = PeriodicCallback(update!, controller.T; initial_affect=true)  # stack initial data
         df = solve(simulator;

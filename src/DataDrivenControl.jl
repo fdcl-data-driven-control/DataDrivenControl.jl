@@ -6,7 +6,7 @@ using Transducers
 
 ## IRL
 # Linear IRL
-export LinearIRL, evaluate_policy!
+export LinearIRL, value_iteration!
 export optimal_input
 
 
