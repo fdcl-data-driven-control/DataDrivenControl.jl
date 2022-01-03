@@ -50,7 +50,7 @@ function main()
         w_true = [P_true[1, 1], P_true[2, 1]+P_true[1, 2], P_true[2, 2]]
         scale = 0.1
         w0 = w_true + scale*randn(3)  # perturbed initial guess
-        tf = 10.0
+        tf = 5.0
         simulator = Simulator(x0, Dynamics!(env), w0;
                               tf=tf,
                              )
@@ -67,8 +67,8 @@ function main()
                   t=t, x=copy(x), u=copy(u), w=copy(w))
             eps = 1e-1
             sc = DistanceStopCondition(eps)
-            value_iteration!(controller, buffer, w; sc=sc)
-            # policy_iteration!(controller, buffer, w; sc=sc)
+            # value_iteration!(controller, buffer, w; sc=sc)
+            policy_iteration!(controller, buffer, w; sc=sc)
         end
         cb_irl = PeriodicCallback(update!, controller.T; initial_affect=true)  # stack initial data
         df = solve(simulator;
