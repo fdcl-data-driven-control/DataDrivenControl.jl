@@ -1,3 +1,4 @@
+using Test
 using DataDrivenControl
 using LinearAlgebra
 
@@ -13,14 +14,18 @@ using LinearAlgebra
         x = rand(n)
         w' * DataDrivenControl.convert_quadratic_to_linear_basis(x) == x' * P * x
     end
-    @testset "quadratic_cost" begin
+    @testset "cost" begin
         x = ones(3)
         u = ones(3)
         Q = Matrix(I, 3, 3)
-        R = Matrix(I, 3, 3)
+        R = 2*Matrix(I, 3, 3)
 
-        cost = DataDrivenControl.QuadraticCost(Q, R)
-        r = cost(x, u)
-        @test r ≈ norm(x)^2 + norm(u)^2  # analytically obtained
+        quadratic_cost = DataDrivenControl.QuadraticCost(Q, R)
+        r = quadratic_cost(x, u)
+        @test r == x'*Q*x + u'*R*u  # analytically obtained
+        Q_func(x) = x'*Q*x
+        R_func(x) = R
+        quadratic_in_input_cost = DataDrivenControl.QuadraticInInputCost(Q_func, R_func)
+        @test r == quadratic_in_input_cost(x, u)
     end
 end
