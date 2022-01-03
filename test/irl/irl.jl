@@ -30,7 +30,8 @@ using LinearAlgebra
         @test length(buffer.data_array) == length(ts)
         ŵ_new = deepcopy(ŵ)
         i = deepcopy(irl.i)
-        DataDrivenControl.evaluate_policy!(irl, buffer, ŵ_new)
+        DataDrivenControl.policy_iteration!(irl, buffer, ŵ_new)
+        DataDrivenControl.value_iteration!(irl, buffer, ŵ_new)
         @test ŵ_new != ŵ  # updated?
         @test i + 1 == irl.i
         DataDrivenControl.reset!(irl)
