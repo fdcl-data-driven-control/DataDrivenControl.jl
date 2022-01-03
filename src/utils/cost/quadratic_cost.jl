@@ -6,6 +6,11 @@ function (cost::AbstractQuadraticCost)(x::AbstractVector, u::AbstractVector)
 end
 
 
+"""
+[1, Eq. (16)]
+# Refs
+[1] T. Bian and Z.-P. Jiang, “Reinforcement Learning and Adaptive Optimal Control for Continuous-Time Nonlinear Systems: A Value Iteration Approach,” IEEE Trans. Neural Netw. Learning Syst., pp. 1–10, 2021, doi: 10.1109/TNNLS.2020.3045087.
+"""
 struct QuadraticInInputCost <: AbstractQuadraticCost
     Q_func
     R_func
