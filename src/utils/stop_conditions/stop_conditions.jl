@@ -8,7 +8,7 @@ end
 struct DistanceStopCondition <: AbstractStopCondition
     eps::Real
     p::Real
-    function DistanceStopCondition(eps=1e-3, p=2)
+    function DistanceStopCondition(eps=1e-1, p=2)
         @assert p > 1
         new(p, eps)
     end
