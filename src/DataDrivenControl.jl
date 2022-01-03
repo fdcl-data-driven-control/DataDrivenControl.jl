@@ -2,11 +2,11 @@ module DataDrivenControl
 
 using LinearAlgebra
 using UnPack
+using Transducers
 
 
-include("cost.jl")
-include("irl/irl.jl")
 include("utils/utils.jl")
+include("irl/irl.jl")
 
 
 end
