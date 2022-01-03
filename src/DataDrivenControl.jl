@@ -11,6 +11,9 @@ export QuadraticInInputCost, QuadraticCost
 export LinearIRL, value_iteration!, policy_iteration!
 export optimal_input
 
+## Stop conditions
+export DistanceStopCondition
+
 
 include("utils/utils.jl")
 include("irl/irl.jl")
