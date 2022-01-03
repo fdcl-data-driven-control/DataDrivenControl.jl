@@ -59,7 +59,7 @@ w: critic parameter (vectorised)
 - V̂: the vector of approximate values (evaluated)
 """
 function value_iteration!(irl::LinearIRL, buffer::DataBuffer, w;
-        sc::AbstractStopCondition=DistanceStopCondition(eps),
+        sc::AbstractStopCondition=DistanceStopCondition(),
     )
     @unpack i, N = irl
     @unpack data_array = buffer
@@ -94,7 +94,7 @@ w: critic parameter (vectorised)
 - ∫rs: the vector of integral running cost by numerical integration (evaluated)
 """
 function policy_iteration!(irl::LinearIRL, buffer::DataBuffer, w;
-        sc::AbstractStopCondition=DistanceStopCondition(eps),
+        sc::AbstractStopCondition=DistanceStopCondition(),
     )
     @unpack i, N = irl
     @unpack data_array = buffer
