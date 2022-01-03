@@ -16,6 +16,7 @@ mutable struct LinearIRL <: AbstractIRL
     N::Int
     i::Int
     i_init::Int
+    stopped::Bool
     function LinearIRL(Q::AbstractMatrix, R::AbstractMatrix, B::AbstractMatrix;
             T=0.04,
             N=nothing,
@@ -32,7 +33,8 @@ mutable struct LinearIRL <: AbstractIRL
         @assert T > 0 && N > 0
         R_inv = inv(R)
         i = i_init
-        new(Q, R_inv, B, T, N, i, i_init)
+        stopped = false
+        new(Q, R_inv, B, T, N, i, i_init, stopped)
     end
 end
 
@@ -47,7 +49,9 @@ w: critic parameter (vectorised)
 - ϕs_prev: the vector of bases (evaluated)
 - V̂: the vector of approximate values (evaluated)
 """
-function value_iteration!(irl::LinearIRL, buffer::DataBuffer, w)
+function value_iteration!(irl::LinearIRL, buffer::DataBuffer, w;
+        sc::AbstractStopCondition=DistanceStopCondition(eps),
+    )
     @unpack i, N = irl
     @unpack data_array = buffer
     data_filtered = filter(x -> x.i == i, data_array)  # data from the current policy
@@ -61,9 +65,15 @@ function value_iteration!(irl::LinearIRL, buffer::DataBuffer, w)
         V̂s_with_prev_P = xs |> Map(x -> value(irl, P, x)) |> collect
         V̂s = ∫rs .+ V̂s_with_prev_P
         # update the critic parameter
-        w .= ( hcat(V̂s...) * pinv(hcat(ϕs_prev...)) )'[:]  # to reduce the computation time; [:] for vectorisation
-        # w .= pinv(hcat(ϕs_prev...)') * hcat(V̂s...)'  # least square sense
-        update_index!(irl)
+        w_new = ( hcat(V̂s...) * pinv(hcat(ϕs_prev...)) )'[:]  # to reduce the computation time; [:] for vectorisation
+        if !irl.stopped
+            if is_stopped(sc, w, w_new)
+                irl.stopped = true
+            else
+                w .= w_new
+                update_index!(irl)
+            end
+        end
     end
 end
 
@@ -74,7 +84,9 @@ w: critic parameter (vectorised)
 - Δϕs: the vector of (ϕ - ϕ_prev) (evaluated)
 - ∫rs: the vector of integral running cost by numerical integration (evaluated)
 """
-function policy_iteration!(irl::LinearIRL, buffer::DataBuffer, w)
+function policy_iteration!(irl::LinearIRL, buffer::DataBuffer, w;
+        sc::AbstractStopCondition=DistanceStopCondition(eps),
+    )
     @unpack i, N = irl
     @unpack data_array = buffer
     data_filtered = filter(x -> x.i == i, data_array)  # data from the current policy
@@ -84,9 +96,15 @@ function policy_iteration!(irl::LinearIRL, buffer::DataBuffer, w)
         Δϕs = diff(ϕs_prev_and_present)
         ∫rs = data_sorted[end-(N-1):end] |> Map(datum -> datum.∫r) |> collect
         # update the critic parameter
-        w .= ( hcat(∫rs...) * pinv(hcat(-Δϕs...)) )'[:]  # to reduce the computation time; [:] for vectorisation
-        # w .= pinv(hcat(-Δϕs...)') * hcat(∫rs...)'  # least square sense
-        update_index!(irl)
+        w_new = ( hcat(∫rs...) * pinv(hcat(-Δϕs...)) )'[:]  # to reduce the computation time; [:] for vectorisation
+        if !irl.stopped
+            if is_stopped(sc, w, w_new)
+                irl.stopped = true
+            else
+                w .= w_new
+                update_index!(irl)
+            end
+        end
     end
 end
 

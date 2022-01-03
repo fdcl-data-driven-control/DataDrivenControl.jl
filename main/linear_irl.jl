@@ -23,6 +23,7 @@ function FlightSims.Dynamics!(env::LinearSystem_ZOH_Gain)
     @Loggable function dynamics!(dx, x, w, t)
         u = optimal_input(controller, x, w)
         @onlylog param = w
+        @onlylog i = controller.i
         @nested_log Dynamics!(linear)(dx, x, w, t; u=u)
     end
 end
@@ -64,8 +65,10 @@ function main()
             u = optimal_input(controller, x, w)  # TODO: not to be duplicate of control input in dynamics for stable coding
             push!(buffer, controller, cost;
                   t=t, x=copy(x), u=copy(u), w=copy(w))
-            # value_iteration!(controller, buffer, w)
-            policy_iteration!(controller, buffer, w)
+            eps = 1e-1
+            sc = DistanceStopCondition(eps)
+            value_iteration!(controller, buffer, w; sc=sc)
+            # policy_iteration!(controller, buffer, w; sc=sc)
         end
         cb_irl = PeriodicCallback(update!, controller.T; initial_affect=true)  # stack initial data
         df = solve(simulator;
@@ -77,10 +80,12 @@ function main()
         xs = df.sol |> Map(datum -> datum.state) |> collect
         us = df.sol |> Map(datum -> datum.input) |> collect
         ws = df.sol |> Map(datum -> datum.param) |> collect
+        is = df.sol |> Map(datum -> datum.i) |> collect
         fig_x = plot(ts, hcat(xs...)'; label=[L"x_{1}" L"x_{2}"], legend=:outerbottomright)
         fig_u = plot(ts, hcat(us...)'; label=L"u", legend=:outerbottomright)
         fig_w = plot(ts, hcat(ws...)'; label=[L"w_{1}" L"w_{2}" L"w_{3}"], legend=:outerbottomright)
+        fig_iter = plot(ts, hcat(is...)'; label="iter")
         ws_true = ts |> Map(t -> w_true) |> collect
         plot!(fig_w, ts, hcat(ws_true...)'; color=:black, label=nothing)
-        fig = plot(fig_x, fig_u, fig_w)
+        fig = plot(fig_x, fig_u, fig_w, fig_iter)
 end
