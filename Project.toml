@@ -9,6 +9,7 @@ Transducers = "28d57a85-8fef-5791-bfe6-a80928e7c999"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
 [compat]
+Transducers = "0.4"
 julia = "1"
 
 [extras]
