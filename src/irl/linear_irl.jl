@@ -16,7 +16,7 @@ mutable struct LinearIRL <: AbstractIRL
     N::Int
     i::Int
     i_init::Int
-    stopped::Bool
+    terminated::Bool
     function LinearIRL(Q::AbstractMatrix, R::AbstractMatrix, B::AbstractMatrix;
             T=0.04,
             N=nothing,
@@ -42,8 +42,8 @@ mutable struct LinearIRL <: AbstractIRL
         @assert T > 0 && N > 0
         R_inv = inv(R)
         i = i_init
-        stopped = false
-        new(Q, R_inv, B, T, N, i, i_init, stopped)
+        terminated = false
+        new(Q, R_inv, B, T, N, i, i_init, terminated)
     end
 end
 
@@ -75,9 +75,9 @@ function value_iteration!(irl::LinearIRL, buffer::DataBuffer, w;
         V̂s = ∫rs .+ V̂s_with_prev_P
         # update the critic parameter
         w_new = ( hcat(V̂s...) * pinv(hcat(ϕs_prev...)) )'[:]  # to reduce the computation time; [:] for vectorisation
-        if !irl.stopped
-            if is_stopped(sc, w, w_new)
-                irl.stopped = true
+        if !irl.terminated
+            if is_terminated(sc, w, w_new)
+                irl.terminated = true
             else
                 w .= w_new
                 update_index!(irl)
@@ -106,9 +106,9 @@ function policy_iteration!(irl::LinearIRL, buffer::DataBuffer, w;
         ∫rs = data_sorted[end-(N-1):end] |> Map(datum -> datum.∫r) |> collect
         # update the critic parameter
         w_new = ( hcat(∫rs...) * pinv(hcat(-Δϕs...)) )'[:]  # to reduce the computation time; [:] for vectorisation
-        if !irl.stopped
-            if is_stopped(sc, w, w_new)
-                irl.stopped = true
+        if !irl.terminated
+            if is_terminated(sc, w, w_new)
+                irl.terminated = true
             else
                 w .= w_new
                 update_index!(irl)

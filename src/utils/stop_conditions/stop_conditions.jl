@@ -1,6 +1,6 @@
 abstract type AbstractStopCondition end
 
-function is_stopped(sc::AbstractStopCondition, args...; kwrags...)
+function is_terminated(sc::AbstractStopCondition, args...; kwrags...)
     error("Defined this method for type: $(typeof(sc))")
 end
 
@@ -14,7 +14,7 @@ struct DistanceStopCondition <: AbstractStopCondition
     end
 end
 
-function is_stopped(sc::DistanceStopCondition, w, w_new)
+function is_terminated(sc::DistanceStopCondition, w, w_new)
     @unpack eps, p = sc
     norm(w_new - w, p) < eps
 end
