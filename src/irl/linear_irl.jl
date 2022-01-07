@@ -7,6 +7,8 @@ See [1, "Online Implementation of IRL: A Hybrid Optimal Adaptive Controller"].
 # Notes
 - T: Data stack period
 - N: The maximum length of stacked data
+- ϕs_prev: the vector of bases (evaluated)
+- V̂: the vector of approximate values (evaluated)
 """
 mutable struct LinearIRL <: AbstractIRL
     Q::AbstractMatrix
